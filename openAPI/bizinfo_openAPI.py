@@ -1,6 +1,5 @@
 # 👾 기업마당 공공 API 
-
-# 👾 기업마당 공공 API
+# GPT로 상세내용 다듬기 필요
 
 from dotenv import load_dotenv
 import os
@@ -22,14 +21,14 @@ params = {
 def parse_period(period_text):
     """20220727 ~ 20220930 형태를 2022-07-27, 2022-09-30으로 변환"""
     if not period_text:
-        return "미정", "미정"
+        return "상세 링크 참고", "상세 링크 참고"
     match = re.match(r"(\d{8})\s*~\s*(\d{8})", period_text)
     if match:
         start = match.group(1)
         end = match.group(2)
         return f"{start[:4]}-{start[4:6]}-{start[6:]}", f"{end[:4]}-{end[4:6]}-{end[6:]}"
     else:
-        return "미정", "미정"
+        return "상세 링크 참고", "상세 링크 참고"
 
 def extract_first_p_text(html_text):
     """<p>...</p> 중 첫 번째 텍스트만 뽑는다"""
@@ -42,7 +41,8 @@ def extract_first_p_text(html_text):
     else:
         return "상세 링크 참고"
 
-def fetch_bizinfo_data():
+def fetch_bizinfo_data(limit=20):
+    """기업마당 API로부터 데이터를 가져오고, 최대 limit개까지 반환"""
     res = requests.get(API_URL, params=params)
     res.raise_for_status()
     data = res.json()
@@ -62,17 +62,19 @@ def fetch_bizinfo_data():
 
     print(f"✅ 총 {len(seoul_items)}건의 '서울' 관련 지원사업이 검색되었습니다.\n")
 
+    # 📌 가져온 후 최대 limit개만 추출
+    selected_items = seoul_items[:limit]
+
     results = []
 
-    for item in seoul_items:
-        title = item.get("pblancNm", "제목 없음")
-        organization = item.get("jrsdInsttNm", "주관기관 없음")
+    for item in selected_items:
+        title = item.get("pblancNm", "상세 링크 참고")
+        organization = item.get("jrsdInsttNm", "상세 링크 참고")
         period_text = item.get("reqstBeginEndDe") or item.get("reqstDt") or ""
         start_date, end_date = parse_period(period_text)
-        category = item.get("pldirSportRealmLclasCodeNm", "카테고리 미정")
+        category = item.get("pldirSportRealmLclasCodeNm", "상세 링크 참고")
         link = "https://www.bizinfo.go.kr" + item.get("pblancUrl", "")
 
-        # 📌 상세 설명: 첫 번째 <p> 안에 있는 텍스트만 추출
         raw_summary = item.get("bsnsSumryCn", "")
         summary = extract_first_p_text(raw_summary)
 
@@ -81,6 +83,7 @@ def fetch_bizinfo_data():
             "주관기관": organization,
             "신청 시작일": start_date,
             "신청 종료일": end_date,
+            "공고 유형": "기업마당 지원사업",  # 고정 값
             "카테고리": category,
             "상세 내용": summary,
             "연결 링크": link,
@@ -90,6 +93,6 @@ def fetch_bizinfo_data():
     return results
 
 if __name__ == "__main__":
-    results = fetch_bizinfo_data()
+    results = fetch_bizinfo_data(limit=20)  # 🔥 20개 제한 적용
     for r in results:
         print(r)

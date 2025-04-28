@@ -1,12 +1,10 @@
 # 📌 네이버파이낸셜 마이비즈 크롤러
-
-# 📌 네이버파이낸셜 마이비즈 정책지원금 크롤러 (최종 수정 버전)
+# GPT로 상세내용 다듬기 필요
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.action_chains import ActionChains
 import time
 
 def run_mybiz_crawling():
@@ -94,15 +92,14 @@ def run_mybiz_crawling():
                     tag_text = "상세 링크 참고"
 
                 try:
-                    # 사업개요 밑 첫번째 p 태그 텍스트 추출
+                    # 🔥 여기 수정: 3번째 guide_view_content_v2 안 p 태그
                     guide_sections = driver.find_elements(By.CSS_SELECTOR, "div.guide_view_content_v2")
-                    content_text = "상세 링크 참고"
-                    for section in guide_sections:
-                        h3 = section.find_elements(By.TAG_NAME, "h3")
-                        if h3 and "사업개요" in h3[0].text:
-                            next_p = section.find_element(By.TAG_NAME, "p").text.strip()
-                            content_text = next_p
-                            break
+                    if len(guide_sections) >= 3:
+                        third_section = guide_sections[2]
+                        p_tag = third_section.find_element(By.TAG_NAME, "p")
+                        content_text = p_tag.text.strip()
+                    else:
+                        content_text = "상세 링크 참고"
                 except:
                     content_text = "상세 링크 참고"
 

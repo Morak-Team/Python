@@ -1,8 +1,4 @@
 # 📌 사회연대은행 크롤러
-# 📌 BSS 소상공인/사회적경제기업 모집중 공고 크롤러
-
-# 📌 사회연대은행 크롤러
-# 📌 BSS 소상공인/사회적경제기업 모집중 공고 크롤러
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By

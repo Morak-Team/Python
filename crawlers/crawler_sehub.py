@@ -1,5 +1,6 @@
 # 📌 서울특별시 사회적경제지원센터 크롤러
 
+
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -57,7 +58,7 @@ def run_sehub_crawling():
                 start_date = written_date if written_date else "상세 링크 참고"
                 end_date = "상세 링크 참고"
                 announcement_type = "사회적경제 공지"
-                category = "사회적경제"
+                category = "사회적경제지원"
 
                 try:
                     poster_img = driver.find_element(By.CSS_SELECTOR, "div.poster img")

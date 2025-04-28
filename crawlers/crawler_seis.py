@@ -1,4 +1,5 @@
 # 📌 사회적 기업 포털 크롤러
+# GPT로 상세내용 다듬기 필요
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
