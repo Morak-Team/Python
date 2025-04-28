@@ -91,14 +91,7 @@ def run_bss_crawling():
 
                 # ✅ 카테고리
                 try:
-                    category_element = driver.find_element(By.CSS_SELECTOR, "div.elementor-element-c381fd7 span")
-                    category_text = category_element.text.strip()
-                except:
-                    category_text = "상세 링크 참고"
-
-                # ✅ 공고 유형
-                try:
-                    type_element = driver.find_element(By.CSS_SELECTOR, "div.elementor-element-9468850 p")
+                    type_element = driver.find_element(By.CSS_SELECTOR, "div.elementor-element-c381fd7 span")
                     type_text = type_element.text.strip()
                 except:
                     type_text = "상세 링크 참고"
@@ -126,7 +119,6 @@ def run_bss_crawling():
                     "신청 시작일": start_date,
                     "신청 종료일": "상세 링크 참고",
                     "공고 유형": type_text,
-                    "카테고리": category_text,
                     "상세 내용": image_url,
                     "연결 링크": detail_url
                 }

@@ -109,7 +109,6 @@ def run_mybiz_crawling():
                     "신청 시작일": start_date,
                     "신청 종료일": end_date,
                     "공고 유형": tag_text,
-                    "카테고리": "정책지원금",
                     "상세 내용": content_text,
                     "연결 링크": link
                 })

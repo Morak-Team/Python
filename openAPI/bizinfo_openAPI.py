@@ -72,7 +72,7 @@ def fetch_bizinfo_data(limit=20):
         organization = item.get("jrsdInsttNm", "상세 링크 참고")
         period_text = item.get("reqstBeginEndDe") or item.get("reqstDt") or ""
         start_date, end_date = parse_period(period_text)
-        category = item.get("pldirSportRealmLclasCodeNm", "상세 링크 참고")
+        announce_type = item.get("pldirSportRealmLclasCodeNm", "상세 링크 참고")
         link = "https://www.bizinfo.go.kr" + item.get("pblancUrl", "")
 
         raw_summary = item.get("bsnsSumryCn", "")
@@ -83,8 +83,7 @@ def fetch_bizinfo_data(limit=20):
             "주관기관": organization,
             "신청 시작일": start_date,
             "신청 종료일": end_date,
-            "공고 유형": "기업마당 지원사업",  # 고정 값
-            "카테고리": category,
+            "공고 유형": announce_type,
             "상세 내용": summary,
             "연결 링크": link,
         }

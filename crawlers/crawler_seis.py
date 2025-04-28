@@ -1,6 +1,7 @@
 # 📌 사회적 기업 포털 크롤러
 # GPT로 상세내용 다듬기 필요
 
+# 사회연대은행 크롤러
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -13,7 +14,7 @@ EXCLUDED_KEYS = {
 }
 
 def parse_period(period_text):
-    """ '2025-04-22 ~ 2025-05-09' 형태를 start, end로 나누는 함수 """
+    """'2025-04-22 ~ 2025-05-09' 형태를 start, end로 나누는 함수"""
     if not period_text:
         return "미정", "미정"
     match = re.match(r"(\d{4}-\d{2}-\d{2})\s*~\s*(\d{4}-\d{2}-\d{2})", period_text)
@@ -98,14 +99,17 @@ def run_seis_crawling():
             period_raw = parsed.get("게시기간", parsed.get("공고기간", parsed.get("접수기간", "")))
             start_date, end_date = parse_period(period_raw)
 
+            # 공고유형 가져오기
+            announcement_type = parsed.get("공고유형", "상세 링크 참고")
+
             # 결과 저장
             result = {
                 "공고 제목": title_text,
-                "주관기관": parsed.get("수행기관", "미정"),
+                "주관기관": parsed.get("수행기관", "상세 링크 참고"),
                 "신청 시작일": start_date,
                 "신청 종료일": end_date,
-                "카테고리": "사회적경제",
-                "상세 내용": parsed.get("안내사항", "안내사항 없음"),
+                "공고 유형": announcement_type,  # ✅ 추가됨
+                "상세 내용": parsed.get("안내사항", "상세 링크 참고"),
                 "연결 링크": current_url,
             }
 

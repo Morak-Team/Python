@@ -57,8 +57,7 @@ def run_sehub_crawling():
 
                 start_date = written_date if written_date else "상세 링크 참고"
                 end_date = "상세 링크 참고"
-                announcement_type = "사회적경제 공지"
-                category = "사회적경제지원"
+                announcement_type = "사회적경제지원센터 공지"
 
                 try:
                     poster_img = driver.find_element(By.CSS_SELECTOR, "div.poster img")
@@ -72,7 +71,6 @@ def run_sehub_crawling():
                     "신청 시작일": start_date,
                     "신청 종료일": end_date,
                     "공고 유형": announcement_type,
-                    "카테고리": category,
                     "상세 내용": description,
                     "연결 링크": detail_link
                 })
