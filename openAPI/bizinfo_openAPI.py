@@ -124,6 +124,6 @@ def fetch_bizinfo_data(limit=20):
 
 # ✅ 실행
 if __name__ == "__main__":
-    results = fetch_bizinfo_data(limit=15)  # 🔥 20개 제한 적용
+    results = fetch_bizinfo_data(limit=3)  # 🔥 20개 제한 적용
     for r in results:
         print(r)
