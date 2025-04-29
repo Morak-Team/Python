@@ -1,16 +1,20 @@
 # 👾 기업마당 공공 API 
-# GPT로 상세내용 다듬기 필요
 
 from dotenv import load_dotenv
 import os
 import requests
 import re
+from openai import OpenAI
 
-# .env 파일 로드
+# ✅ .env 파일 로드
 load_dotenv()
 
 API_URL = "https://www.bizinfo.go.kr/uss/rss/bizinfoApi.do"
 API_KEY = os.getenv("BIZ_INFO_API_KEY")
+OPEN_API_KEY = os.getenv("OPEN_API_KEY")
+
+# ✅ OpenAI 클라이언트 설정
+client = OpenAI(api_key=OPEN_API_KEY)
 
 params = {
     "crtfcKey": API_KEY,
@@ -18,6 +22,41 @@ params = {
     "hashtags": "서울",  # 서울 키워드
 }
 
+# ✅ ChatGPT 요약 함수
+def summarize_text_with_chatgpt(title, text):
+    try:
+        prompt = f"""
+        다음 텍스트를 읽고, 친절하고 부드러운 서비스 직원처럼 자연스럽게 핵심만 요약해줘.
+
+        - 말투는 토스나 카카오뱅크처럼 편안하고 친근해야 해.
+        - 사무적인 표현은 쓰지 말고, 자연스럽고 간결하게 이어지게 써줘.
+        - "안녕하세요" 같은 인삿말 없이, "이번 사업" 대신 반드시 공고 제목을 자연스럽게 언급해서 시작해줘.
+        - 첫 문장은 "{title}에서는 ~ 지원하고 있어요" 또는 "{title}을 통해 ~을 도와드리고 있어요"처럼 자연스럽게 시작해줘.
+        - 문장은 부드럽고 자연스럽게 연결되도록 써줘.
+        - "요약입니다:" 같은 말은 절대 쓰지 말고,
+        - 읽기 편하게 문단 단위로 자연스럽게 끊어줘.
+        - 마지막에는 항상 "자세한 내용은 상세 링크를 확인해 주세요."로 부드럽게 마무리해줘.
+
+        다음은 요약할 텍스트야:
+
+        공고 제목: {title}
+        본문 내용:
+        {text}
+        """
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": "너는 친절하고 부드럽게 요약하는 전문 어시스턴트야."},
+                {"role": "user", "content": prompt}
+            ]
+        )
+        summary = response.choices[0].message.content.strip()
+        return summary
+    except Exception as e:
+        print(f"❌ ChatGPT 요약 실패: {e}")
+        return "요약 실패"
+
+# ✅ 기간 파싱 함수
 def parse_period(period_text):
     """20220727 ~ 20220930 형태를 2022-07-27, 2022-09-30으로 변환"""
     if not period_text:
@@ -30,17 +69,7 @@ def parse_period(period_text):
     else:
         return "상세 링크 참고", "상세 링크 참고"
 
-def extract_first_p_text(html_text):
-    """<p>...</p> 중 첫 번째 텍스트만 뽑는다"""
-    if not html_text:
-        return "상세 링크 참고"
-    start_idx = html_text.find("<p>")
-    end_idx = html_text.find("</p>", start_idx)
-    if start_idx != -1 and end_idx != -1:
-        return html_text[start_idx + 3:end_idx].strip()
-    else:
-        return "상세 링크 참고"
-
+# ✅ 데이터 수집 함수
 def fetch_bizinfo_data(limit=20):
     """기업마당 API로부터 데이터를 가져오고, 최대 limit개까지 반환"""
     res = requests.get(API_URL, params=params)
@@ -76,7 +105,9 @@ def fetch_bizinfo_data(limit=20):
         link = "https://www.bizinfo.go.kr" + item.get("pblancUrl", "")
 
         raw_summary = item.get("bsnsSumryCn", "")
-        summary = extract_first_p_text(raw_summary)
+
+        # ✅ ChatGPT로 요약
+        summarized_text = summarize_text_with_chatgpt(title, raw_summary)
 
         result = {
             "공고 제목": title,
@@ -84,14 +115,15 @@ def fetch_bizinfo_data(limit=20):
             "신청 시작일": start_date,
             "신청 종료일": end_date,
             "공고 유형": announce_type,
-            "상세 내용": summary,
+            "상세 내용": summarized_text,
             "연결 링크": link,
         }
         results.append(result)
 
     return results
 
+# ✅ 실행
 if __name__ == "__main__":
-    results = fetch_bizinfo_data(limit=20)  # 🔥 20개 제한 적용
+    results = fetch_bizinfo_data(limit=15)  # 🔥 20개 제한 적용
     for r in results:
         print(r)
