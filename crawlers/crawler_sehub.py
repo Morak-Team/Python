@@ -24,7 +24,7 @@ def run_sehub_crawling():
 
         print(f"🚨 총 {len(normal_rows)}건 발견 (inform 및 링크 없는 항목 제외)")
 
-        for idx, row in enumerate(normal_rows[:1]):  # 최대 10개
+        for idx, row in enumerate(normal_rows[:10]):  # 최대 10개
             try:
                 # 링크, 제목 추출
                 title_element = row.find_element(By.CSS_SELECTOR, "td.title a")

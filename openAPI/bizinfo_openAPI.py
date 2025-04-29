@@ -7,7 +7,7 @@ import re
 from openai import OpenAI
 
 # ✅ .env 파일 로드
-load_dotenv()
+load_dotenv(dotenv_path="/Users/won-yunseo/Development/Crawling/.env")
 
 API_URL = "https://www.bizinfo.go.kr/uss/rss/bizinfoApi.do"
 API_KEY = os.getenv("BIZ_INFO_API_KEY")
@@ -124,6 +124,6 @@ def fetch_bizinfo_data(limit=20):
 
 # ✅ 실행
 if __name__ == "__main__":
-    results = fetch_bizinfo_data(limit=3)  # 🔥 20개 제한 적용
+    results = fetch_bizinfo_data(limit=10)  # 🔥 20개 제한 적용
     for r in results:
         print(r)

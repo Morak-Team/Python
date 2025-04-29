@@ -10,7 +10,7 @@ import os
 from dotenv import load_dotenv
 
 # ✅ 환경변수 로드
-load_dotenv()
+load_dotenv(dotenv_path="/Users/won-yunseo/Development/Crawling/.env")
 api_key = os.getenv("OPEN_API_KEY")
 client = OpenAI(api_key=api_key)
 
@@ -151,7 +151,7 @@ def run_mybiz_crawling():
         items = driver.find_elements(By.CSS_SELECTOR, "li.guide_list_item")
         print(f"\n🚨 총 {len(items)}건 공고 발견\n")
 
-        for idx, item in enumerate(items[:1], 1):
+        for idx, item in enumerate(items[:10], 1):
             try:
                 link_element = item.find_element(By.CSS_SELECTOR, "a.guide_list_link")
                 link = link_element.get_attribute("href")
