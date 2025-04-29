@@ -1,6 +1,5 @@
 # 📌 서울특별시 사회적경제지원센터 크롤러
 
-
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait

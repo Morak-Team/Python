@@ -9,12 +9,12 @@ from openai import OpenAI
 import os
 from dotenv import load_dotenv
 
-# ✅ OpenAI API 키 설정
+# ✅ 환경변수 로드
 load_dotenv()
 api_key = os.getenv("OPEN_API_KEY")
 client = OpenAI(api_key=api_key)
 
-# ✅ 최신 방식으로 요약 함수 작성 (공고 제목 포함)
+# ✅ ChatGPT 요약 함수
 def summarize_text_with_chatgpt(title, text):
     try:
         prompt = f"""
@@ -46,7 +46,7 @@ def summarize_text_with_chatgpt(title, text):
         print(f"❌ ChatGPT 요약 실패: {e}")
         return "요약 실패"
 
-# ✅ 상세페이지 전체 긁어오기 (본문 + 테이블 포함)
+# ✅ 상세페이지 본문 + 테이블 모두 긁기
 def get_full_content(driver):
     try:
         sections = driver.find_elements(By.CSS_SELECTOR, "div.guide_view_content_v2")
@@ -83,6 +83,18 @@ def get_full_content(driver):
         print(f"❌ 상세 내용 수집 실패: {e}")
         return "상세 링크 참고"
 
+# ✅ 날짜 포맷 정리 함수 (ex: 2022.03.04 → 2022-03-04)
+def clean_date_format(date_str):
+    try:
+        if "." in date_str:
+            parts = date_str.split(".")
+            if len(parts) == 3:
+                year, month, day = parts
+                return f"{year.strip()}-{month.strip().zfill(2)}-{day.strip().zfill(2)}"
+    except:
+        pass
+    return date_str
+
 # ✅ 메인 크롤러
 def run_mybiz_crawling():
     driver = webdriver.Chrome()
@@ -91,6 +103,14 @@ def run_mybiz_crawling():
     results = []
 
     try:
+        # 🔥 팝업이 있으면 사라질 때까지 기다림
+        try:
+            WebDriverWait(driver, 10).until(EC.invisibility_of_element_located((By.CLASS_NAME, "pop_img")))
+            print("✅ 로딩 오버레이(pop_img) 사라짐 확인 완료")
+        except:
+            print("⚠️ pop_img가 없거나 바로 진행합니다")
+
+        # 지역 필터 클릭
         region_filter = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(., '지역')]")))
         region_filter.click()
         print("✅ 지역 필터 열기 완료")
@@ -100,6 +120,7 @@ def run_mybiz_crawling():
         print("✅ 서울특별시 선택 완료")
         time.sleep(1)
 
+        # 우대사항 필터 클릭
         preference_filter = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(., '우대사항')]")))
         preference_filter.click()
         print("✅ 우대사항 필터 열기 완료")
@@ -116,6 +137,7 @@ def run_mybiz_crawling():
 
         time.sleep(2)
 
+        # 스크롤 해서 공고 모두 로딩
         prev_count = 0
         for scroll_try in range(5):
             driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
@@ -129,7 +151,7 @@ def run_mybiz_crawling():
         items = driver.find_elements(By.CSS_SELECTOR, "li.guide_list_item")
         print(f"\n🚨 총 {len(items)}건 공고 발견\n")
 
-        for idx, item in enumerate(items[:10], 1):
+        for idx, item in enumerate(items[:3], 1):
             try:
                 link_element = item.find_element(By.CSS_SELECTOR, "a.guide_list_link")
                 link = link_element.get_attribute("href")
@@ -149,19 +171,18 @@ def run_mybiz_crawling():
                     org_detail = "상세 링크 참고"
 
                 start_date = "상세 링크 참고"
-            
+
+                # 🔥 신청 종료일 추출 및 포맷 변환
                 try:
                     end_date = "상세 링크 참고"
                     dts = driver.find_elements(By.CSS_SELECTOR, "dl dt")
                     for dt in dts:
                         if "접수 마감일" in dt.text:
                             dd = dt.find_element(By.XPATH, "following-sibling::dd[1]")
-                            first_span = dd.find_element(By.CSS_SELECTOR, "span.font_num")  # 첫 번째 span만 가져오기
-                            end_date = first_span.text.strip()
+                            first_span = dd.find_element(By.CSS_SELECTOR, "span.font_num")
+                            raw_end_date = first_span.text.strip()
+                            end_date = clean_date_format(raw_end_date)
                             break
-                except Exception as e:
-                    print(f"❌ 신청 종료일 수집 실패: {e}")
-
                 except Exception as e:
                     print(f"❌ 신청 종료일 수집 실패: {e}")
                     end_date = "상세 링크 참고"
@@ -213,4 +234,3 @@ def run_mybiz_crawling():
 # ✅ 실행
 if __name__ == "__main__":
     run_mybiz_crawling()
-
