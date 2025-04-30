@@ -7,7 +7,7 @@ import re
 from openai import OpenAI
 
 # ✅ .env 파일 로드
-load_dotenv(dotenv_path="/Users/won-yunseo/Development/Crawling/.env")
+load_dotenv()
 
 API_URL = "https://www.bizinfo.go.kr/uss/rss/bizinfoApi.do"
 API_KEY = os.getenv("BIZ_INFO_API_KEY")
