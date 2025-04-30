@@ -15,8 +15,8 @@ from dotenv import load_dotenv
 
 # ✅ OpenAI API 설정
 load_dotenv(dotenv_path="/Users/won-yunseo/Development/Crawling/.env")
-api_key = os.getenv("OPEN_API_KEY")
-client = OpenAI(api_key=api_key)
+openai.api_key = os.getenv("OPEN_API_KEY")  # ✅ 환경변수 직접 사용
+client = openai.OpenAI()                    # ✅ 키 없이 생성
 
 # ✅ 제외할 키들
 EXCLUDED_KEYS = {
