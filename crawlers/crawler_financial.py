@@ -6,8 +6,17 @@ from selenium.webdriver.support import expected_conditions as EC
 import time
 
 def crawl_kinfa_social_finance():
+
+    # ✅ GitHub Actions에서 충돌 없는 Chrome 옵션 구성
     options = webdriver.ChromeOptions()
-    options.add_argument("--start-maximized")
+    options.add_argument("--headless")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--disable-gpu")
+    # ✅ user-data-dir 충돌 방지: 아예 생략 (또는 임시 경로 할당도 가능)
+
+    driver = webdriver.Chrome(options=options)  # ✅ 수정된 부분
+
     driver = webdriver.Chrome(options=options)
     wait = WebDriverWait(driver, 10)
 
