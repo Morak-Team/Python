@@ -16,8 +16,7 @@ import openai
 # ✅ OpenAI API 설정
 
 load_dotenv()
-openai.api_key = os.getenv("OPEN_API_KEY")
-client = openai.OpenAI()
+client = openai.OpenAI(api_key=os.getenv("OPEN_API_KEY"))
 
 # ✅ 제외할 키들
 EXCLUDED_KEYS = {

@@ -8,11 +8,15 @@ import time
 from openai import OpenAI
 import os
 from dotenv import load_dotenv
+import openai
 
 # ✅ 환경변수 로드
-load_dotenv(dotenv_path="/Users/won-yunseo/Development/Crawling/.env")
-api_key = os.getenv("OPEN_API_KEY")
-client = OpenAI(api_key=api_key)
+# load_dotenv(dotenv_path="/Users/won-yunseo/Development/Crawling/.env")
+# api_key = os.getenv("OPEN_API_KEY")
+# client = OpenAI(api_key=api_key)
+
+load_dotenv()
+client = openai.OpenAI(api_key=os.getenv("OPEN_API_KEY"))
 
 # ✅ ChatGPT 요약 함수
 def summarize_text_with_chatgpt(title, text):
