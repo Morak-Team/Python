@@ -105,7 +105,9 @@ client = OpenAI(api_key=os.getenv("OPEN_API_KEY"))
 app = FastAPI()
 
 # 엑셀 데이터 로딩
-df = pd.read_excel("../data/financialData.xlsx")
+base_dir = os.path.dirname(os.path.abspath(__file__))
+excel_path = os.path.join(base_dir, "../data/financialData.xlsx")
+df = pd.read_excel(excel_path)
 
 # 상품 요약 함수
 def summarize_product(row):
