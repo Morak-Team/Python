@@ -6,6 +6,7 @@ import pandas as pd
 import os
 import json
 import re
+from typing import List
 
 # 환경 설정
 load_dotenv()
@@ -42,7 +43,7 @@ class UserInput(BaseModel):
     선호_이율_구조: str
     담보_제공_가능_여부: str
     필요_서비스_종류: str
-    우대_조건_보유_항목: str
+    우대_조건_보유_항목: List[str]
 
 # API 엔드포인트
 @app.post("/recommend")
@@ -57,7 +58,7 @@ def recommend(user_input: UserInput):
             f"- 선호 이율 구조: {user_input.선호_이율_구조}",
             f"- 담보 제공 가능 여부: {user_input.담보_제공_가능_여부}",
             f"- 필요 서비스 종류: {user_input.필요_서비스_종류}",
-            f"- 우대 조건 보유 항목: {user_input.우대_조건_보유_항목}"
+            f"- 우대 조건 보유 항목: {', '.join(user_input.우대_조건_보유_항목)}"
         ])
 
         # 프롬프트 구성
