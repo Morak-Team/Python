@@ -7,6 +7,8 @@ import os
 import json
 import re
 from typing import List
+from fastapi.middleware.cors import CORSMiddleware
+
 
 # 환경 설정
 load_dotenv()
@@ -14,6 +16,14 @@ client = OpenAI(api_key=os.getenv("OPEN_API_KEY"))
 
 # FastAPI 앱 초기화
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # 또는 ["http://localhost:5173"] 등으로 제한 가능
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # 엑셀 데이터 로딩
 base_dir = os.path.dirname(os.path.abspath(__file__))
