@@ -275,63 +275,54 @@
 #         raise HTTPException(status_code=500, detail=str(e))
 
 # api/server.py
-from collections import deque
-from typing import List
-
-import os, re, json, pandas as pd
-from dotenv import load_dotenv
+# api/server.py
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from typing import List
 from openai import OpenAI
+from dotenv import load_dotenv
+import pandas as pd
+import os
+import re
 
-# ────────────────── 0. 기본 설정 ──────────────────
+# ──────────────────────── 환경설정 ────────────────────────
 load_dotenv()
 client = OpenAI(api_key=os.getenv("OPEN_API_KEY"))
 
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],              # 필요하면 도메인 화이트리스트로 제한
+    allow_origins=["*"],          # 필요하면 ['http://localhost:5173'] 로 제한
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# ──────────────────────── 데이터 로딩 ────────────────────────
 BASE_DIR   = os.path.dirname(os.path.abspath(__file__))
 EXCEL_PATH = os.path.join(BASE_DIR, "../data/financialData.xlsx")
 df         = pd.read_excel(EXCEL_PATH)
 
-# 최근 5개 추천 캐시 (메모리 / 프로세스 재시작 시 초기화)
-recent_recommends: deque[str] = deque(maxlen=5)
-
-# ────────────────── 1. 유틸 함수 ──────────────────
-def _contains(text: str, keyword: str) -> bool:
+# ──────────────────────── 유틸 함수 ────────────────────────
+def contains(text: str, keyword: str) -> bool:
     return keyword.lower() in str(text).lower()
 
-def make_tags(row: pd.Series) -> str:
-    tags = []
-    if re.search(r"무담보|담보.*없음", str(row["지원대상 상세조건"])+str(row["기타 참고사항"])):
-        tags.append("#무담보")
-    if "고정" in str(row["사업 개요"]) or "고정" in str(row["기타 참고사항"]):
-        tags.append("#고정금리")
-    if "장애" in str(row["지원대상"]) or "장애" in str(row["지원대상 상세조건"]):
-        tags.append("#장애인우대")
-    return " ".join(tags) if tags else "#일반"
+def filter_candidates(df: pd.DataFrame, ui) -> pd.DataFrame:
+    cond1 = df["지원대상"].apply(lambda x: contains(x, ui.기업_형태))
+    cond2 = df["분류"].apply(lambda x: contains(x, ui.필요_서비스_종류))
+    sub   = df[cond1 | cond2]
+    return sub if not sub.empty else df.head(30)  # fallback 최대 30개
 
-def summarize_row(row: pd.Series) -> str:
+def summarize(row):
     return (
-        f"{row['제목']} | {make_tags(row)} | "
-        f"대상:{row['지원대상']} | 주관:{row['주관기관']}"
+        f"{row['제목']} ({row['분류']}, {row['지원대상']}) - "
+        f"{row['사업 개요'][:40].strip().replace(chr(10),' ')} "
+        f"/ 주관: {row['주관기관']}, 신청: {row.get('신청방법(절차)', '정보 없음')}, "
+        f"문의: {row.get('문의처','정보 없음')}"
     )
 
-def filter_candidates(df: pd.DataFrame, ui: "UserInput") -> pd.DataFrame:
-    cond1 = df["지원대상"].apply(lambda x: _contains(x, ui.기업_형태))
-    cond2 = df["분류"].apply(lambda x: _contains(x, ui.필요_서비스_종류))
-    out   = df[cond1 | cond2]
-    return out if not out.empty else df.head(25)  # fallback
-
-# ────────────────── 2. Pydantic 모델 ──────────────────
+# ──────────────────────── Pydantic 모델 ────────────────────────
 class UserInput(BaseModel):
     업종: str
     기업_형태: str
@@ -343,72 +334,78 @@ class UserInput(BaseModel):
     필요_서비스_종류: str
     우대_조건_보유_항목: List[str]
 
-# ────────────────── 3. 엔드포인트 ──────────────────
-@app.post("/recommend")
-def recommend(user_input: UserInput):
-    try:
-        # 1) 후보 추리기
-        cand_df = filter_candidates(df, user_input).copy()
-        cand_df["tags"] = cand_df.apply(make_tags, axis=1)
-        summaries = "\n".join(cand_df.apply(summarize_row, axis=1))
+# ──────────────────────── 스타일 가이드 ────────────────────────
+STYLE_GUIDE = """
+[스타일 가이드]
+1) 토스·카카오뱅크 알림처럼 짧고 캐주얼한 톤 (“~요” 종결)
+2) 한 문단 길이 3~5줄, 이모지 1~2개 허용 😊🌱
+3) 숫자는 ‘5천만원’ 같이 한글로 표기
+"""
 
-        # 2) 프롬프트 구성
-        user_block = "\n".join([
-            f"- 업종: {user_input.업종}",
-            f"- 기업 형태: {user_input.기업_형태}",
-            f"- 기업 규모: {user_input.기업_규모}",
-            f"- 연매출: {user_input.연매출}",
-            f"- 필요금액: {user_input.필요금액}",
-            f"- 선호 이율 구조: {user_input.선호_이율_구조}",
-            f"- 담보 제공 가능 여부: {user_input.담보_제공_가능_여부}",
-            f"- 필요 서비스 종류: {user_input.필요_서비스_종류}",
-            f"- 우대 조건: {', '.join(user_input.우대_조건_보유_항목)}",
+# ──────────────────────── API 엔드포인트 ────────────────────────
+@app.post("/recommend")
+def recommend(ui: UserInput):
+    try:
+        # 1. 후보 상품 추리기
+        cand_df = filter_candidates(df, ui)
+        prod_txt = "\n".join(cand_df.apply(summarize, axis=1))
+
+        # 2. 사용자 정보 포맷
+        ui_txt = "\n".join([
+            f"- 업종: {ui.업종}",
+            f"- 기업 형태: {ui.기업_형태}",
+            f"- 기업 규모: {ui.기업_규모}",
+            f"- 연매출: {ui.연매출}",
+            f"- 필요금액: {ui.필요금액}",
+            f"- 선호 이율 구조: {ui.선호_이율_구조}",
+            f"- 담보 제공 가능 여부: {ui.담보_제공_가능_여부}",
+            f"- 필요 서비스 종류: {ui.필요_서비스_종류}",
+            f"- 우대 조건 보유 항목: {', '.join(ui.우대_조건_보유_항목)}",
         ])
 
-        system_msg = (
-            "너는 사회적경제 금융 컨설턴트야.\n"
-            "규칙:\n"
-            "1) 아래 [선택 규칙]을 따르되 JSON으로만 대답해."
+        # 3. 프롬프트
+        prompt = f"""{STYLE_GUIDE}
+
+당신은 사회적경제 특화 금융추천 챗봇이에요.
+아래 정보만 참고해서 ‘가장 잘 맞는 상품 1개’만 골라주세요.
+
+[응답 포맷]
+상품명: {{상품명}}
+주관기관: {{기관}}
+추천이유: {{짧고 캐주얼한 3~5줄}}
+마무리: {{두 줄 이내 캐주얼 응원 멘트}}
+
+[사용자 정보]
+{ui_txt}
+
+[후보 상품 요약] (총 {len(cand_df)}개)
+{prod_txt}
+"""
+
+        # 4. GPT 호출
+        res = client.chat.completions.create(
+            model="gpt-4-1106-preview",
+            temperature=0.6,                    # 표현 다양화
+            messages=[{"role": "user", "content": prompt}],
         )
+        content = res.choices[0].message.content.strip()
 
-        select_rule = (
-            "[선택 규칙]\n"
-            "● 태그/조건 일치가 많은 순으로 점수화 후 상위 3개 중 1위 선택.\n"
-            "● 최근 5회 추천 목록에 이미 있는 상품이면 다음 순위로.\n"
-            "● 최종 1개만 {\"상품명\":..,\"주관기관\":..,\"추천이유\":..,\"마무리\":..} 형태 JSON 출력."
-        )
+        # 5. 파싱
+        title   = re.search(r"상품명:\s*(.+)", content)
+        agency  = re.search(r"주관기관:\s*(.+)", content)
+        reason  = re.search(r"추천이유:\s*(.+?)(?:마무리:|$)", content, re.S)
+        closing = re.search(r"마무리:\s*(.+)", content, re.S)
 
-        prompt = (
-            f"{select_rule}\n\n"
-            f"[사용자 정보]\n{user_block}\n\n"
-            f"[후보 목록] (총 {len(cand_df)}개)\n{summaries}"
-        )
-
-        # 3) GPT 호출 (JSON 응답 강제)
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",  # 필요모델
-            response_format={"type": "json_object"},
-            messages=[
-                {"role": "system", "content": system_msg},
-                {"role": "user",   "content": prompt},
-                {"role": "assistant", "content":
-                    json.dumps({"최근추천": list(recent_recommends)}, ensure_ascii=False)}
-            ],
-            temperature=0.4
-        )
-
-        result = json.loads(response.choices[0].message.content)
-
-        # 4) 캐시에 추가
-        recent_recommends.append(result["상품명"])
+        if not all([title, agency, reason, closing]):
+            raise ValueError("GPT 응답 형식이 올바르지 않습니다.")
 
         return {
             "product": {
-                "title": result["상품명"],
-                "agency": result["주관기관"],
-                "description": result["추천이유"]
+                "title": title.group(1).strip(),
+                "agency": agency.group(1).strip(),
+                "description": reason.group(1).strip()
             },
-            "closing": result["마무리"]
+            "closing": closing.group(1).strip()
         }
 
     except Exception as e:
